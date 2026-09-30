@@ -3,12 +3,13 @@
 // 横轴以区块高度为唯一坐标系：所有标注位置都是高度，日期仅作刻度辅助显示。
 import {
   PIVOT_WINDOWS, HALVING_INTERVAL, WAVE_BULL_HALF,
-  EXTEND_MARGIN_BLOCKS, COLORS,
+  EXTEND_MARGIN_BLOCKS, BLOCKS_PER_DAY, TRADE_WINDOW_DAYS, COLORS,
 } from './config.js';
 import { heightAt, timeAtHeight } from './blocks.js';
 import { t } from './i18n.js';
 import { PhaseArea } from './primitives/phase-area.js';
 import { VertLine } from './primitives/vert-line.js';
+import { HalvingTrade } from './primitives/halving-trade.js';
 
 // YYYY/MM/DD（与 main.js 全站日期格式一致），减半标签的日期行用
 const fmtYMD = (ts) => {
@@ -16,6 +17,31 @@ const fmtYMD = (ts) => {
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getUTCFullYear()}/${p(d.getUTCMonth() + 1)}/${p(d.getUTCDate())}`;
 };
+
+// 减半买卖窗口跨度（区块）：500 天 × 144 块/天 = 72,000 块，
+// 与高度轴同一坐标系，整除无余数
+const TRADE_WIN_BLOCKS = TRADE_WINDOW_DAYS * BLOCKS_PER_DAY;
+
+// 高度 → 当日收盘价：经真实链上时间锚点反推日期，在真实日线之间
+// 线性插值。数据边界外（更早历史 / 未来推演）返回 null，
+// 买卖窗口直角无锚可定即整体不画
+function priceAtHeight(candles, h) {
+  const n = candles.length;
+  if (n === 0) return null;
+  const ts = timeAtHeight(h);
+  if (ts < candles[0].time || ts > candles[n - 1].time) return null;
+  let lo = 0;
+  let hi = n - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (candles[mid].time <= ts) lo = mid;
+    else hi = mid;
+  }
+  const a = candles[lo];
+  const b = candles[hi];
+  const f = (ts - a.time) / ((b.time - a.time) || 1);
+  return a.close + f * (b.close - a.close);
+}
 
 export function computePivots(candles) {
   const pivots = [];
@@ -41,9 +67,10 @@ export function computePivots(candles) {
 }
 
 // 由枢轴推出全部标注 primitive，按类别分组返回（牛熊区着色与减半线
-// 各有独立的显隐开关）。todayH：当前链上高度；horizon：未来视界高度。
+// 各有独立的显隐开关）。todayH：当前链上高度；horizon：未来视界高度；
+// dailyCandles：真实日线（无 whitespace 占位），供买卖窗口直角锚价。
 // 返回 { bandPrims, halvingPrims, phaseBandPrims, phaseHalvingPrims, extendTo, meta }。
-export function buildAnnotations(pivots, todayH, horizon = null) {
+export function buildAnnotations(pivots, todayH, horizon = null, dailyCandles = []) {
   const bandPrims = [];         // 主图：牛熊夹心填充 + 类型标签
   const halvingPrims = [];      // 主图：减半竖线 + 竖排标签
   const phaseBandPrims = [];    // 副图对应两类
@@ -85,6 +112,40 @@ export function buildAnnotations(pivots, todayH, horizon = null) {
       labelColor: COLORS.halvingLabel,
     }));
     phaseHalvingPrims.push(new VertLine({ time: hgt, color: COLORS.halving }));
+
+    // 减半买卖窗口直角（经典周期图语言）：绿 = 减半前 500 天买入、
+    // 红 = 减半后 500 天卖出。窗口时间由区块高度精确确定（500 天 =
+    // 72,000 块），锚价在真实日线范围内时画实线直角、竖边锚定当日
+    // 收盘价；锚价在数据边界之外（第一轮的 2011 年更早历史 / 尚未
+    // 走到的未来窗口）时降级为虚线推演直角——窗口照标、价位留白，
+    // 与狼波指数「实线已发生、虚线推演」同一语言。卖出窗口超出未来
+    // 视界时连推演也不画（图上没有那段时间轴）
+    const tradeLabel = t('windowDays', TRADE_WINDOW_DAYS);
+    const buyH = hgt - TRADE_WIN_BLOCKS;
+    const buyPrice = priceAtHeight(dailyCandles, buyH);
+    halvingPrims.push(new HalvingTrade({
+      mode: 'buy',
+      halvingH: hgt,
+      anchorH: buyH,
+      price: buyPrice,
+      label: tradeLabel,
+      color: COLORS.tradeBuy,
+      projected: buyPrice === null,
+    }));
+    const sellH = hgt + TRADE_WIN_BLOCKS;
+    // 卖出窗口超出未来视界时图上没有那段时间轴，连推演也不画
+    if (sellH <= extendTo) {
+      const sellPrice = priceAtHeight(dailyCandles, sellH);
+      halvingPrims.push(new HalvingTrade({
+        mode: 'sell',
+        halvingH: hgt,
+        anchorH: sellH,
+        price: sellPrice,
+        label: tradeLabel,
+        color: COLORS.tradeSell,
+        projected: sellPrice === null,
+      }));
+    }
   }
 
   // 牛熊区间：由狼波周期指数（纯区块制）推导——牛市 = 减半 ± 78,750 区块

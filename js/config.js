@@ -25,8 +25,17 @@ export const PIVOT_WINDOWS = [
 // K 线分桶粒度（块，约等于 日/周/月）
 export const BLOCK_BUCKETS = { day: 144, week: 1008, month: 4368 };
 
+// 平均出块速率（协议目标 10 分钟/块）：1 天 ≈ 144 块，
+// 日历天数 → 区块数的唯一换算基准
+export const BLOCKS_PER_DAY = 144;
+
 // 减半周期：每 210,000 块一次
 export const HALVING_INTERVAL = 210000;
+
+// 减半买卖窗口（经典周期图语言）：减半前 500 天买入（绿直角）、
+// 减半后 500 天卖出（红直角）。窗口跨度以平均出块率折算成区块数，
+// 与全站高度轴同一坐标系
+export const TRADE_WINDOW_DAYS = 500;
 
 // 狼波周期指数（纯区块制）：周期 = 210,000 块（减半到减半），牛三熊一 →
 // 牛市 = 157,500 块且减半在正中间，即 减半 ± 78,750 块；熊市 = 其余 52,500 块。
@@ -92,6 +101,11 @@ export const THEMES = {
     halving: 'rgba(46, 107, 255, 0.55)',
     halvingLabel: '#7da3ff',
 
+    // 减半买卖窗口直角：绿 = 减半前 500 天买入、红 = 减半后 500 天卖出。
+    // 与 up/down 同族色相但独立成键，便于单独调节
+    tradeBuy: '#3ddc97',
+    tradeSell: '#f23645',
+
     today: 'rgba(139, 147, 161, 0.65)', // 当前区块引导线
 
     // 十字线：中性灰线 + 面板色数值牌（默认蓝灰与全站配色不搭）
@@ -128,6 +142,10 @@ export const THEMES = {
 
     halving: 'rgba(41, 98, 255, 0.50)',
     halvingLabel: '#2962ff',
+
+    // 减半买卖窗口直角：绿 = 减半前 500 天买入、红 = 减半后 500 天卖出
+    tradeBuy: '#059669',
+    tradeSell: '#e02a3a',
 
     today: 'rgba(118, 125, 138, 0.70)', // 当前区块引导线
 

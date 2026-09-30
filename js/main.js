@@ -397,7 +397,8 @@ async function init() {
     const hNow = tipHeight ?? heightAt(dailyReal.at(-1).time + DAY);
     const horizonH = waveHorizonHeight(hNow);
     const bucket = BLOCK_BUCKETS[timeframe];
-    const ann = buildAnnotations(pivots, hNow, horizonH);
+    // 真实日线传给标注构建：减半买卖窗口直角要按买卖日收盘价锚定
+    const ann = buildAnnotations(pivots, hNow, horizonH, dailyReal);
     // 横轴覆盖 [区块 0, 未来视界]：价格数据之前与之后都用 whitespace 占位
     bars = extendBlocks(prependBlocks(aggregateByBlocks(daily, bucket), bucket), ann.extendTo, bucket);
     meta = ann.meta;
