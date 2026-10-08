@@ -1,6 +1,6 @@
 {
-  "name": "Wolfy Wave Index · 狼波周期指数",
-  "short_name": "Wolfy Wave",
+  "name": "BTC Wave Index · BTC 周期指数",
+  "short_name": "BTC Wave",
   "description": "Bitcoin four-year-cycle chart with block height as its only x-axis.",
   "start_url": "./",
   "scope": "./",

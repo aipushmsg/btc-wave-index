@@ -1,27 +1,27 @@
 // 轻量中英文字典。t(key, ...args) 取当前语言文案，函数型条目用于带参数拼接。
 export const STRINGS = {
   zh: {
-    brand: '狼波周期指数',
-    brandSub: 'WOLFY WAVE INDEX',
+    brand: 'BTC 周期指数',
+    brandSub: 'BTC WAVE INDEX',
     tfDay: '日',
     tfWeek: '周',
     tfMonth: '月',
     styleCandles: 'K线',
     styleLine: '折线',
-    styleWave: '狼波着色',
+    styleWave: 'BTC 着色',
     log: '对数',
     linear: '线性',
     priceLabel: '比特币价格',
-    waveLabel: '狼波指数',
+    waveLabel: 'BTC 指数',
     scaleTop: '牛顶',
     scaleBottom: '熊底',
     halvingTag: (n, d) => `第 ${n} 次减半（${d}）`,
     windowDays: (d) => `${d} 天`,
     bull: '牛市',
     bear: '熊市',
-    paneTitleName: '狼波周期指数',
-    statWave: '狼波周期指数',
-    watermark: ['狼波周期指数', '作者：杀破狼 · @wolfyxbt'],
+    paneTitleName: 'BTC 周期指数',
+    statWave: 'BTC 周期指数',
+    watermark: ['BTC 周期指数', '作者：柠檬狗 · @0xLemonDog'],
     axisName: '区块高度',
     legendOHLC: ['开', '高', '低', '收'],
     ttBlock: (n) => `区块 ${n}`,
@@ -36,14 +36,14 @@ export const STRINGS = {
     titleScale: '价格坐标',
     titleAnnotHalving: '显示/隐藏减半日标注',
     titleAnnotBands: '显示/隐藏牛/熊市标注',
-    titlePhase: '显示/隐藏狼波指数窗格',
-    titleWaveScale: '狼波指数色标',
+    titlePhase: '显示/隐藏 BTC 指数窗格',
+    titleWaveScale: 'BTC 指数色标',
     titleAbout: '指标说明',
-    aboutTitle: '狼波周期指数 · 指标说明',
+    aboutTitle: 'BTC 周期指数 · 指标说明',
     aboutHtml: `
 <section>
   <h3>概览</h3>
-  <p>狼波周期指数（Wolfy Wave Index，WWI）是一个纯区块制的比特币周期位置指标：不使用价格、成交量或任何链上活动数据，唯一输入是<b>区块高度</b>。指数在 <code>0</code> 与 <code>1</code> 之间往复运行——<code>0</code> = 理论熊市底部，<code>1</code> = 理论牛市顶部。</p>
+  <p>BTC 周期指数（BTC Wave Index，BWI）是一个纯区块制的比特币周期位置指标：不使用价格、成交量或任何链上活动数据，唯一输入是<b>区块高度</b>。指数在 <code>0</code> 与 <code>1</code> 之间往复运行——<code>0</code> = 理论熊市底部，<code>1</code> = 理论牛市顶部。</p>
 </section>
 <section>
   <h3>模型</h3>
@@ -59,23 +59,23 @@ export const STRINGS = {
   <p>对任意区块高度 <code>h</code>，先求其在周期内的相位 <code>s</code>：</p>
   <div class="about-formula">s = (h + 78,750) mod 210,000
 
-WWI(h) = s / 157,500　　　　　　　　　　 s &lt; 157,500（牛市段）
-WWI(h) = 1 − (s − 157,500) / 52,500　　s ≥ 157,500（熊市段）</div>
-  <p>牛市段以恒定速率每块 <code>+1/157,500</code> 从 0 升至 1，熊市段以每块 <code>−1/52,500</code> 从 1 降回 0；减半时刻恰为 <code>WWI = 0.5</code>。</p>
+BWI(h) = s / 157,500　　　　　　　　　　 s &lt; 157,500（牛市段）
+BWI(h) = 1 − (s − 157,500) / 52,500　　s ≥ 157,500（熊市段）</div>
+  <p>牛市段以恒定速率每块 <code>+1/157,500</code> 从 0 升至 1，熊市段以每块 <code>−1/52,500</code> 从 1 降回 0；减半时刻恰为 <code>BWI = 0.5</code>。</p>
 </section>
 <section>
   <h3>解读</h3>
   <ul>
     <li>上行段 = 模型牛市，下行段 = 模型熊市。读数须结合方向：同一数值每个周期出现两次（升、降各一次）。</li>
-    <li>数值即周期进度：牛市段中 WWI 为牛市已完成比例，熊市段中 <code>1 − WWI</code> 为熊市已完成比例。</li>
+    <li>数值即周期进度：牛市段中 BWI 为牛市已完成比例，熊市段中 <code>1 − BWI</code> 为熊市已完成比例。</li>
     <li>区块高度完全可预测（平均每 10 分钟一块），指数的未来路径可以精确推演——图中虚线段即未来推演。</li>
-    <li>全站将指数值映射到蓝（0）→ 红（1）色谱：狼波着色模式与右侧色标同一映射。</li>
+    <li>全站将指数值映射到蓝（0）→ 红（1）色谱：BTC 着色模式与右侧色标同一映射。</li>
   </ul>
 </section>
 <section>
   <h3>特性与局限</h3>
   <ul>
-    <li><b>完全确定</b>：WWI 是区块高度的纯函数，无任何可调参数，任何人可独立复算。</li>
+    <li><b>完全确定</b>：BWI 是区块高度的纯函数，无任何可调参数，任何人可独立复算。</li>
     <li><b>无价格反馈</b>：指数刻画周期时点而非估值水平，不会因行情涨跌而移动。</li>
     <li><b>假设依赖</b>：有效性取决于「四年减半周期 + 牛三熊一结构」持续成立；市场结构性改变将削弱其现实解释力。</li>
   </ul>
@@ -87,7 +87,7 @@ WWI(h) = 1 − (s − 157,500) / 52,500　　s ≥ 157,500（熊市段）</div>
     noticeStale: (d) => `实时数据加载失败，当前显示截至 ${d} 的历史数据。`,
   },
   en: {
-    brand: 'Wolfy Wave Index',
+    brand: 'BTC Wave Index',
     brandSub: '', // 英文界面主名即英文，副标题隐藏
     tfDay: 'D',
     tfWeek: 'W',
@@ -105,9 +105,9 @@ WWI(h) = 1 − (s − 157,500) / 52,500　　s ≥ 157,500（熊市段）</div>
     windowDays: (d) => `${d} days`,
     bull: 'Bull',
     bear: 'Bear',
-    paneTitleName: 'Wolfy Wave Index',
-    statWave: 'WWI',
-    watermark: ['Wolfy Wave Index', 'Creator: WolfyXBT · @wolfyxbt'],
+    paneTitleName: 'BTC Wave Index',
+    statWave: 'BWI',
+    watermark: ['BTC Wave Index', 'Creator: LemonDog · @0xLemonDog'],
     axisName: 'Block Height',
     legendOHLC: ['O', 'H', 'L', 'C'],
     ttBlock: (n) => `Block ${n}`,
@@ -116,7 +116,7 @@ WWI(h) = 1 − (s − 157,500) / 52,500　　s ≥ 157,500（熊市段）</div>
     ttPhase: 'Phase',
     titleLang: 'Language',
     titleTheme: 'Dark / light theme',
-    titleWaveStat: 'Wolfy Wave Index · 0 = bear bottom · 1 = bull top',
+    titleWaveStat: 'BTC Wave Index · 0 = bear bottom · 1 = bull top',
     titleTf: 'Bucket size: D = 144 blocks · W = 1,008 · M = 4,368',
     titleStyle: 'Chart type',
     titleScale: 'Price scale',
@@ -125,11 +125,11 @@ WWI(h) = 1 − (s − 157,500) / 52,500　　s ≥ 157,500（熊市段）</div>
     titlePhase: 'Show/hide Wave Index pane',
     titleWaveScale: 'Wave Index color scale',
     titleAbout: 'Methodology',
-    aboutTitle: 'Wolfy Wave Index · Methodology',
+    aboutTitle: 'BTC Wave Index · Methodology',
     aboutHtml: `
 <section>
   <h3>Overview</h3>
-  <p>The Wolfy Wave Index (WWI) is a block-native Bitcoin cycle-position indicator. It uses no price, volume, or on-chain activity data — its only input is <b>block height</b>. The index oscillates between <code>0</code> and <code>1</code>: <code>0</code> = theoretical bear-market bottom, <code>1</code> = theoretical bull-market top.</p>
+  <p>The BTC Wave Index (BWI) is a block-native Bitcoin cycle-position indicator. It uses no price, volume, or on-chain activity data — its only input is <b>block height</b>. The index oscillates between <code>0</code> and <code>1</code>: <code>0</code> = theoretical bear-market bottom, <code>1</code> = theoretical bull-market top.</p>
 </section>
 <section>
   <h3>Model</h3>
@@ -145,15 +145,15 @@ WWI(h) = 1 − (s − 157,500) / 52,500　　s ≥ 157,500（熊市段）</div>
   <p>For any block height <code>h</code>, take its phase <code>s</code> within the cycle:</p>
   <div class="about-formula">s = (h + 78,750) mod 210,000
 
-WWI(h) = s / 157,500                  s &lt; 157,500  (bull)
-WWI(h) = 1 − (s − 157,500) / 52,500   s ≥ 157,500  (bear)</div>
-  <p>The index climbs 0 → 1 at a constant <code>+1/157,500</code> per block in the bull phase and falls 1 → 0 at <code>−1/52,500</code> per block in the bear phase; at every halving, <code>WWI = 0.5</code> exactly.</p>
+BWI(h) = s / 157,500                  s &lt; 157,500  (bull)
+BWI(h) = 1 − (s − 157,500) / 52,500   s ≥ 157,500  (bear)</div>
+  <p>The index climbs 0 → 1 at a constant <code>+1/157,500</code> per block in the bull phase and falls 1 → 0 at <code>−1/52,500</code> per block in the bear phase; at every halving, <code>BWI = 0.5</code> exactly.</p>
 </section>
 <section>
   <h3>Interpretation</h3>
   <ul>
     <li>Rising segment = model bull market, falling segment = model bear market. Read the value together with its direction: every value occurs twice per cycle (once rising, once falling).</li>
-    <li>The value is cycle progress: in the bull phase WWI is the fraction of the bull completed; in the bear phase <code>1 − WWI</code> is the fraction of the bear completed.</li>
+    <li>The value is cycle progress: in the bull phase BWI is the fraction of the bull completed; in the bear phase <code>1 − BWI</code> is the fraction of the bear completed.</li>
     <li>Block height is fully predictable (≈ one block per 10 minutes), so the index's future path can be projected exactly — the dashed segment on the chart.</li>
     <li>Site-wide, values map onto a blue (0) → red (1) spectrum: Wave Color mode and the right-hand color scale share this mapping.</li>
   </ul>
@@ -161,7 +161,7 @@ WWI(h) = 1 − (s − 157,500) / 52,500   s ≥ 157,500  (bear)</div>
 <section>
   <h3>Properties &amp; Limitations</h3>
   <ul>
-    <li><b>Fully deterministic</b>: WWI is a pure function of block height with no tunable parameters — anyone can recompute it independently.</li>
+    <li><b>Fully deterministic</b>: BWI is a pure function of block height with no tunable parameters — anyone can recompute it independently.</li>
     <li><b>No price feedback</b>: it marks cycle position, not valuation, and never moves in response to price.</li>
     <li><b>Assumption-dependent</b>: its validity rests on the 4-year halving cycle and the 3 : 1 structure continuing to hold; a structural market change would weaken its explanatory power.</li>
   </ul>

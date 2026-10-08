@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>狼波周期指数 · Wolfy Wave Index</title>
+  <title>BTC 周期指数 · BTC Wave Index</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23EC2626'/%3E%3Cstop offset='.15' stop-color='%23F69C1C'/%3E%3Cstop offset='.3' stop-color='%23D6DF38'/%3E%3Cstop offset='.5' stop-color='%2348BE50'/%3E%3Cstop offset='.75' stop-color='%233EC4E9'/%3E%3Cstop offset='1' stop-color='%23263CDB'/%3E%3C/linearGradient%3E%3Crect width='32' height='32' rx='5' fill='url(%23g)'/%3E%3C/svg%3E">
   <!-- 主屏图标：iOS「添加到主屏幕」只认 PNG 的 apple-touch-icon（不支持
        SVG，也不读 data: URI）；Android 走 manifest 里的 PNG 图标 -->
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="manifest" href="site.webmanifest">
-  <meta name="apple-mobile-web-app-title" content="Wolfy Wave">
+  <meta name="apple-mobile-web-app-title" content="BTC Wave">
   <meta name="theme-color" content="#0e1117">
   <link rel="stylesheet" href="css/style.css">
   <!-- Google tag (gtag.js) -->
@@ -26,7 +26,7 @@
 <body>
   <header class="topbar">
     <div class="brand">
-      <!-- 品牌标记：狼波色谱六个主色锚点的垂直渐变（1=牛顶红在上，0=熊底蓝在下），
+      <!-- 品牌标记：BTC 色谱六个主色锚点的垂直渐变（1=牛顶红在上，0=熊底蓝在下），
            渐变位置 = 1 - 指数值，与右侧色标同一映射 -->
       <svg class="brand-mark" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true">
         <defs>
@@ -42,7 +42,7 @@
         <rect width="32" height="32" rx="5" fill="url(#brand-grad)"/>
       </svg>
       <div class="brand-text">
-        <div class="brand-name" id="brand-name">Wolfy Wave Index</div>
+        <div class="brand-name" id="brand-name">BTC Wave Index</div>
         <div class="brand-sub" id="brand-sub" hidden></div>
       </div>
     </div>
@@ -84,18 +84,18 @@
             <span id="stat-height" class="price">—</span>
           </div>
         </div>
-        <div class="stat" id="stat-wave-cell" title="Wolfy Wave Index · 0 = bear bottom · 1 = bull top">
-          <span class="stat-label"><span id="stat-wave-label">WWI</span><i class="live-dot"></i></span>
+        <div class="stat" id="stat-wave-cell" title="BTC Wave Index · 0 = bear bottom · 1 = bull top">
+          <span class="stat-label"><span id="stat-wave-label">BWI</span><i class="live-dot"></i></span>
           <div class="stat-value">
             <span id="stat-wave" class="price">—</span>
           </div>
         </div>
       </div>
       <div class="top-actions">
-        <a class="icon-btn" href="https://x.com/wolfyxbt" target="_blank" rel="noopener noreferrer" title="X · @wolfyxbt">
+        <a class="icon-btn" href="https://x.com/0xLemonDog" target="_blank" rel="noopener noreferrer" title="X · @0xLemonDog">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
         </a>
-        <a class="icon-btn" href="https://github.com/wolfyxbt/wolfy-wave-index" target="_blank" rel="noopener noreferrer" title="GitHub · wolfy-wave-index">
+        <a class="icon-btn" href="https://github.com/aipushmsg/btc-wave-index" target="_blank" rel="noopener noreferrer" title="GitHub · btc-wave-index">
           <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
         </a>
         <button class="icon-btn" id="about-toggle" title="Methodology">
@@ -145,7 +145,7 @@
     </div>
 
     <div id="loading" class="loading">
-      <div class="loading-brand" id="loading-brand">Wolfy Wave Index</div>
+      <div class="loading-brand" id="loading-brand">BTC Wave Index</div>
       <div class="loading-spinner"></div>
       <div id="loading-text">Loading market data…</div>
     </div>
@@ -161,7 +161,7 @@
   <div id="about-overlay" class="about-overlay" hidden>
     <div class="about-modal" role="dialog" aria-modal="true" aria-labelledby="about-title">
       <div class="about-head">
-        <b id="about-title">Wolfy Wave Index · Methodology</b>
+        <b id="about-title">BTC Wave Index · Methodology</b>
         <button class="icon-btn" id="about-close" aria-label="Close">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>

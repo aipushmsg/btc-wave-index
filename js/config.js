@@ -37,7 +37,7 @@ export const HALVING_INTERVAL = 210000;
 // 与全站高度轴同一坐标系
 export const TRADE_WINDOW_DAYS = 500;
 
-// 狼波周期指数（纯区块制）：周期 = 210,000 块（减半到减半），牛三熊一 →
+// BTC 周期指数（纯区块制）：周期 = 210,000 块（减半到减半），牛三熊一 →
 // 牛市 = 157,500 块且减半在正中间，即 减半 ± 78,750 块；熊市 = 其余 52,500 块。
 // 不参考现实时间与实际价格顶底，整条锯齿仅由减半区块网格推导
 export const WAVE_BULL_HALF = 78750;
@@ -48,7 +48,7 @@ export const EXTEND_MARGIN_BLOCKS = 6480;
 export const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif';
 export const FONT_MONO = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
 
-// 狼波色谱（参照 RSI 彩虹渐变）：0 = 蓝（熊底）→ 1 = 红（牛顶）。
+// BTC 色谱（参照 RSI 彩虹渐变）：0 = 蓝（熊底）→ 1 = 红（牛顶）。
 // 折线逐点着色、右侧色标、读数文字与牛熊夹心填充共用同一映射
 export const WAVE_COLOR_STOPS = [
   [0.00, [38, 60, 219]],
@@ -93,7 +93,7 @@ export const THEMES = {
     bullLabel: '#34d399',
     bearLabel: '#fb7185',
 
-    // 牛熊夹心填充：取狼波色谱主色锚点——牛 = 色谱中点绿 #48BE50，
+    // 牛熊夹心填充：取 BTC 色谱主色锚点——牛 = 色谱中点绿 #48BE50，
     // 熊 = 牛顶红 #EC2626，与折线着色/色标同一色系
     bandFillBull: 'rgba(72, 190, 80, 0.20)',
     bandFillBear: 'rgba(236, 38, 38, 0.18)',
@@ -112,7 +112,7 @@ export const THEMES = {
     crosshairLine: 'rgba(139, 147, 161, 0.45)',
     crosshairLabelBg: '#2a3448',
 
-    phase: '#eab04d', // 狼波周期指数折线（0=熊底 → 1=牛顶）
+    phase: '#eab04d', // BTC 周期指数折线（0=熊底 → 1=牛顶）
 
     tagBg: 'rgba(14, 17, 23, 0.72)', // 标签胶囊统一底色（半透明减轻遮挡感）
 
@@ -135,7 +135,7 @@ export const THEMES = {
     bullLabel: '#059669',
     bearLabel: '#e11d48',
 
-    // 牛熊夹心填充：取狼波色谱主色锚点——牛 = 色谱中点绿 #48BE50，
+    // 牛熊夹心填充：取 BTC 色谱主色锚点——牛 = 色谱中点绿 #48BE50，
     // 熊 = 牛顶红 #EC2626，与折线着色/色标同一色系
     bandFillBull: 'rgba(72, 190, 80, 0.14)',
     bandFillBear: 'rgba(236, 38, 38, 0.11)',
@@ -153,7 +153,7 @@ export const THEMES = {
     crosshairLine: 'rgba(118, 125, 138, 0.50)',
     crosshairLabelBg: '#5b6472',
 
-    phase: '#c88a2d', // 狼波周期指数折线（0=熊底 → 1=牛顶）
+    phase: '#c88a2d', // BTC 周期指数折线（0=熊底 → 1=牛顶）
 
     tagBg: 'rgba(255, 255, 255, 0.75)', // 标签胶囊统一底色（半透明减轻遮挡感）
 

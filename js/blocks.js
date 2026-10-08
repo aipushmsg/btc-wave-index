@@ -1,10 +1,10 @@
 // 区块高度轴：日期 ↔ 高度插值映射、按块数分桶聚合、时间轴延伸、
-// 狼波周期指数（纯区块制）。
+// BTC 周期指数（纯区块制）。
 // 锚点 = 每 144 块（一根日 K 的桶宽）一个真实区块头时间戳 (timestamp, height)，
 // 每根日 K 的边界都是真实链上时间，插值误差小于日期的日级显示粒度。
 import { DAY, WAVE_BULL_HALF, HALVING_INTERVAL } from './config.js';
 
-// 狼波周期指数：高度的纯函数，0 = 熊底，1 = 牛顶。
+// BTC 周期指数：高度的纯函数，0 = 熊底，1 = 牛顶。
 // 牛市 = 减半 ± WAVE_BULL_HALF（0→1 线性），熊市 = 其余区块（1→0 线性），
 // 按减半网格无限周期延拓，与现实时间和价格无关
 export function waveIndexAt(h) {
@@ -122,7 +122,7 @@ export function extendBlocks(bars, untilHeight, bucketSize) {
 }
 
 // 高度轴向创世块回填（whitespace 占位）：价格数据虽从 2013 年开始，
-// 但区块 0 之后的牛熊区域、减半线与狼波指数都是可推算的
+// 但区块 0 之后的牛熊区域、减半线与 BTC 指数都是可推算的
 export function prependBlocks(bars, bucketSize) {
   if (!bars.length || bars[0].time <= 0) return bars;
   const head = [];

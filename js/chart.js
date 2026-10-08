@@ -1,4 +1,4 @@
-// 图表创建与主题（对数坐标、中文、全范围可缩放、狼波指数副图区）。
+// 图表创建与主题（对数坐标、中文、全范围可缩放、BTC 指数副图区）。
 // 横轴以区块高度为主：内置时间轴隐藏，底部刻度（高度 + ≈日期）由
 // main.js 的自绘轴条负责。
 import { COLORS, FONT_MONO } from './config.js';
@@ -95,7 +95,7 @@ export function createChartAndSeries(container) {
     lastValueVisible: true,
   });
 
-  // 狼波着色模式：折线逐点着色（颜色 = 该处狼波指数，蓝 0 → 红 1），
+  // BTC 着色模式：折线逐点着色（颜色 = 该处 BTC 指数，蓝 0 → 红 1），
   // 颜色随数据点传入，不走主题
   const waveLine = chart.addSeries(LWC.LineSeries, {
     priceScaleId: 'left',
@@ -106,7 +106,7 @@ export function createChartAndSeries(container) {
     lastValueVisible: true,
   });
 
-  // 狼波周期指数副图区（TradingView 风格的下方独立面板）：
+  // BTC 周期指数副图区（TradingView 风格的下方独立面板）：
   // 实线 = 已发生，虚线 = 预测段；左轴显示 0~1 小数读数
   // 三位小数：指数按区块推进（144 区块桶 ≈ 0.001），两位小数几天不动
   const phaseFormat = { type: 'custom', formatter: (v) => v.toFixed(3), minMove: 0.001 };

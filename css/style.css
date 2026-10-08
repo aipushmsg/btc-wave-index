@@ -313,7 +313,7 @@ html:not([lang="en"]) .glyph-en { display: none; }
 .chg.up { color: var(--up); }
 .chg.down { color: var(--down); }
 
-/* 狼波指数读数的颜色由 JS 按 waveColor(值) 动态设置——
+/* BTC 指数读数的颜色由 JS 按 waveColor(值) 动态设置——
    与折线/色标同一色谱，同一数值同一颜色 */
 
 /* ── 顶栏中部：图表控件带（粒度/类型/坐标/标注，单顶栏布局） ──
@@ -546,7 +546,7 @@ html:not([lang="en"]) .glyph-en { display: none; }
   inset: 0;
 }
 
-/* ── 狼波指数色标（右侧垂直渐变条，蓝 0 = 熊底 → 红 1 = 牛顶） ── */
+/* ── BTC 指数色标（右侧垂直渐变条，蓝 0 = 熊底 → 红 1 = 牛顶） ── */
 .wave-scale {
   flex: none;
   display: flex;
@@ -609,7 +609,7 @@ html:not([lang="en"]) .glyph-en { display: none; }
   pointer-events: none;
 }
 
-/* 副图（狼波指数窗格）显隐开关：浮在窗格右上角；窗格收起后退到图表右下角。
+/* 副图（BTC 指数窗格）显隐开关：浮在窗格右上角；窗格收起后退到图表右下角。
    高度 24px 是刻意的例外：浮在数据上方的迷你控件，比栏区控件紧凑一档 */
 .phase-toggle {
   border-radius: var(--r-m);
