@@ -578,7 +578,7 @@ async function init() {
           lv(USDT_D_BUY_STRONG, COLORS.usdtdBuyText, LWC.LineStyle.Dashed, '10%'),
           lv(USDT_D_BUY_LEVEL, COLORS.usdtdBuyText, LWC.LineStyle.Dashed, '8.9%'),
           lv(USDT_D_SELL_LEVEL, COLORS.usdtdSellText, LWC.LineStyle.Dashed, '4.2%'),
-          lv(USDT_D_SELL_STRONG, COLORS.usdtdSellText, LWC.LineStyle.Dotted, '0%'),
+          lv(USDT_D_SELL_STRONG, COLORS.usdtdSellText, LWC.LineStyle.Dotted, '2.1%'),
         ];
       }
       usdtdNow = usdtdSeries.at(-1).value;
