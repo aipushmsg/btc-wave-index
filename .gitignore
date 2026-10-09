@@ -1,3 +1,5 @@
 .DS_Store
 node_modules/
 .claude/
+# 站点数据快照必须随仓库分发（覆盖全局 gitignore 的 *.json 规则）
+!data/*.json
