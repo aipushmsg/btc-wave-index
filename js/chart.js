@@ -135,7 +135,7 @@ export function createChartAndSeries(container) {
     scaleMargins: { top: 0.06, bottom: 0.05 },
   });
 
-  // 主图 : 副图 ≈ 4 : 1
+  // 主图 : BWI 副图 ≈ 4 : 1
   try {
     const panes = chart.panes();
     panes[0].setStretchFactor(4);
@@ -144,16 +144,46 @@ export function createChartAndSeries(container) {
     console.warn('副图高度设置失败（不影响功能）：', e);
   }
 
-  return { chart, series, lineSeries, waveLine, phaseSolid, phaseDashed };
+  // USDT.D 副图区（第三面板）：USDT 市值占全加密市场百分比（%）。
+  // 折线 = 日频重建序列；9% / 9.5% 两条买入阈值线由 main.js 挂载。
+  // 独立于 BTC 指数：一个是「周期位置」（0~1），一个是「资金避险温度」
+  //（2~10%），量纲不同必须分面板，不可共轴
+  const usdtdFormat = { type: 'custom', formatter: (v) => v.toFixed(2) + '%', minMove: 0.01 };
+  const usdtdLine = chart.addSeries(LWC.LineSeries, {
+    color: COLORS.usdtd,
+    priceScaleId: 'left',
+    lineWidth: 1.5,
+    priceFormat: usdtdFormat,
+    priceLineVisible: true,
+    lastValueVisible: true,
+    pointMarkersVisible: false,
+    visible: false, // 默认隐藏，main.js 加载数据后按持久化状态显示
+  }, 2);
+  usdtdLine.priceScale().applyOptions({
+    mode: LWC.PriceScaleMode.Normal,
+    scaleMargins: { top: 0.08, bottom: 0.06 },
+  });
+
+  try {
+    const panes = chart.panes();
+    panes[0].setStretchFactor(4);
+    panes[1].setStretchFactor(1);
+    panes[2].setStretchFactor(1);
+  } catch (e) {
+    console.warn('第三面板高度设置失败（不影响功能）：', e);
+  }
+
+  return { chart, series, lineSeries, waveLine, phaseSolid, phaseDashed, usdtdLine };
 }
 
 // 主题切换时刷新图表配色（标注由调用方重建）
-export function applyChartTheme(chart, series, lineSeries, phaseSolid, phaseDashed) {
+export function applyChartTheme(chart, series, lineSeries, phaseSolid, phaseDashed, usdtdLine) {
   chart.applyOptions(themeOptions());
   series.applyOptions(seriesThemeOptions());
   lineSeries.applyOptions(lineThemeOptions());
   phaseSolid.applyOptions(phaseThemeOptions());
   phaseDashed.applyOptions(phaseThemeOptions());
+  if (usdtdLine) usdtdLine.applyOptions({ color: COLORS.usdtd });
 }
 
 // 对数/线性切换

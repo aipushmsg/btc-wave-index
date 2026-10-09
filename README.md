@@ -59,6 +59,7 @@ BWI(h) = 1 − (s − 157,500) / 52,500   s ≥ 157,500（熊市段）
 
 - `data/btc-daily.json` — Bitstamp BTC/USD 日线快照（随仓库分发）；页面加载时从 Bitstamp 拉最近数据实时合并，失败回退 Coinbase，再失败显示快照并提示。刷新：`node scripts/fetch-history.mjs`（Node ≥ 18）。
 - `data/btc-heights.json` — 高度 ↔ 日期映射锚点：**每 144 块（一根日 K 的桶宽）一个真实区块头时间戳**，从创世块铺到生成当日（6,600+ 锚点），四次减半的插值日期与真实日期精确一致；页面运行时另从 mempool.space 实时补「当前高度」锚点。刷新：`node scripts/fetch-heights.mjs`。
+- `data/usdt-dominance.json` — USDT.D（USDT 市值占全加密市场百分比，日频，2022-06 起）：由 CMC 全球总市值（周频，与 TradingView CRYPTOCAP 同源）+ DefiLlama USDT 全链流通量（日频）+ CoinMetrics BTC 流通市值（日频，用于把周频总市值按 BTC 占比插值重建为日频）三源重建。 抵达 9% 进入买入区、9.5% 为极端低估（图表中折线 + 阈值线 + 触及标记自动标出）。刷新：`node scripts/fetch-usdt-d.mjs`（Node ≥ 21；国内网络需代理，如 `NODE_USE_ENV_PROXY=1 HTTPS_PROXY=http://127.0.0.1:7890 node scripts/fetch-usdt-d.mjs`）。
 - 未来日期按平均出块速度外推，全站以 `≈` 标注——横轴的唯一真实坐标是区块高度。
 
 ## 本地运行
@@ -147,6 +148,7 @@ The index climbs 0 → 1 at a constant +1/157,500 per block in the bull phase an
 
 - `data/btc-daily.json` — Bitstamp BTC/USD daily snapshot (shipped with the repo); merged live at load, Coinbase fallback. Refresh: `node scripts/fetch-history.mjs` (Node ≥ 18).
 - `data/btc-heights.json` — height ↔ date anchors: **one real block-header timestamp every 144 blocks** (6,600+ anchors from genesis), interpolated halving dates match the real ones exactly; a live tip anchor is added at runtime from mempool.space. Refresh: `node scripts/fetch-heights.mjs`.
+- `data/usdt-dominance.json` — USDT.D (USDT market-cap share of total crypto, daily, since 2022-06), rebuilt from three public sources: CMC global market cap (weekly, same origin as TradingView CRYPTOCAP) + DefiLlama USDT circulating supply (daily) + CoinMetrics BTC market cap (daily, used to interpolate the weekly totals into daily via the BTC dominance ratio). Reaching 9% marks the buy zone, 9.5% extreme undervaluation (drawn on the chart as a line + threshold levels + touch markers). Refresh: `node scripts/fetch-usdt-d.mjs` (Node ≥ 21; use a proxy where needed, e.g. `NODE_USE_ENV_PROXY=1 HTTPS_PROXY=http://127.0.0.1:7890 node scripts/fetch-usdt-d.mjs`).
 - Future dates are extrapolated from the average block rate and always marked `≈` — the only true coordinate is block height.
 
 ## Run locally

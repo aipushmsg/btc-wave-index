@@ -683,6 +683,12 @@ html:not([lang="en"]) .glyph-en { display: none; }
   margin-left: 12px;
 }
 
+/* USDT.D 标题行：同一套排版；进入买入区时的提示语与数值拉开间距 */
+.usdtd-legend b:last-child {
+  font-weight: 600;
+  margin-left: 12px;
+}
+
 /* ── 悬停信息卡：跟随十字线，聚合该位置的全部读数 ── */
 .chart-tooltip {
   border-radius: var(--r-l);

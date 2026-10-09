@@ -37,6 +37,13 @@ export const HALVING_INTERVAL = 210000;
 // 与全站高度轴同一坐标系
 export const TRADE_WINDOW_DAYS = 500;
 
+// USDT.D（USDT 市值占全加密市场百分比）买入阈值：USDT.D 高企 =
+// 场外稳定币资金相对体量极高 = 大饼被恐慌抛售至低估区。
+// 历史验证：2022-12 峰值（TV 同源数据 9.486%）正是上轮熊市大底。
+// 抵达 9% 进入买入区，9.5% 为极端低估（历史峰值约在此位）
+export const USDT_D_BUY_LEVEL = 9;
+export const USDT_D_STRONG_LEVEL = 9.5;
+
 // BTC 周期指数（纯区块制）：周期 = 210,000 块（减半到减半），牛三熊一 →
 // 牛市 = 157,500 块且减半在正中间，即 减半 ± 78,750 块；熊市 = 其余 52,500 块。
 // 不参考现实时间与实际价格顶底，整条锯齿仅由减半区块网格推导
@@ -106,6 +113,13 @@ export const THEMES = {
     tradeBuy: '#3ddc97',
     tradeSell: '#f23645',
 
+    // USDT.D 折线（Tether 品牌绿，与指标自身身份绑定）与买入阈值。
+    // 阈值线用暖橙：与折线绿形成「线冷区暖」的提醒层次
+    usdtd: '#26a17b',
+    usdtdLevel: '#f5a623',
+    usdtdZone: 'rgba(38, 161, 123, 0.12)',
+    usdtdBuyText: '#3ddc97',
+
     today: 'rgba(139, 147, 161, 0.65)', // 当前区块引导线
 
     // 十字线：中性灰线 + 面板色数值牌（默认蓝灰与全站配色不搭）
@@ -146,6 +160,12 @@ export const THEMES = {
     // 减半买卖窗口直角：绿 = 减半前 500 天买入、红 = 减半后 500 天卖出
     tradeBuy: '#059669',
     tradeSell: '#e02a3a',
+
+    // USDT.D 折线与买入阈值（浅色下压暗保对比度）
+    usdtd: '#0d8a63',
+    usdtdLevel: '#b45309',
+    usdtdZone: 'rgba(13, 138, 99, 0.10)',
+    usdtdBuyText: '#059669',
 
     today: 'rgba(118, 125, 138, 0.70)', // 当前区块引导线
 

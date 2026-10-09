@@ -3,7 +3,7 @@
 // OHLC 读数、周期状态栏、顶部标签轴）
 import {
   DAY, BLOCK_BUCKETS, HALVING_INTERVAL, WAVE_BULL_HALF, COLORS, FONT, FONT_MONO, setTheme,
-  WAVE_COLOR_STOPS, waveColor,
+  WAVE_COLOR_STOPS, waveColor, USDT_D_BUY_LEVEL, USDT_D_STRONG_LEVEL,
 } from './config.js';
 import { createChartAndSeries, applyChartTheme, setLogScale } from './chart.js';
 import {
@@ -17,6 +17,7 @@ import {
 import { computePivots, buildAnnotations } from './pivots.js';
 import { t, setLang, I18N } from './i18n.js';
 import { setSeriesData, timeToLogical, logicalToX } from './primitives/base.js';
+import { UsdtBuyZone } from './primitives/usdt-zone.js';
 
 const $ = (id) => document.getElementById(id);
 const fmtDate = (t) => new Date(t * 1000).toISOString().slice(0, 10);
@@ -46,6 +47,7 @@ const TF_KEY = 'btc-tf';
 // 作为两者缺省值的兜底，老用户的选择不丢失）
 const ANNOT_HALVING_KEY = 'btc-annot-halving';
 const ANNOT_BANDS_KEY = 'btc-annot-bands';
+const USDTD_KEY = 'btc-usdtd'; // USDT.D 窗格显隐（独立开关，默认显示）
 
 // BTC 色谱与 waveColor 定义在 config.js（与夹心填充/色标共用同一映射）
 
@@ -116,9 +118,18 @@ async function init() {
   let livePrice = null;    // 实时价格（轮询 Bitstamp ticker，仅供顶栏）
   let watermark = null;
   let waveNow = null;      // 当前（今日）BTC 指数值，十字线移开时回落显示
+  let usdtdOn = localStorage.getItem(USDTD_KEY) !== '0'; // USDT.D 窗格显示中（默认开）
+  let usdtRaw = [];        // USDT.D 原始序列（[[unix秒, %]]，快照加载后固定）
+  let usdtdSeries = [];    // 对齐到当前分桶网格后的序列（render 内重建）
+  let usdtdNow = null;     // 最新 USDT.D 读数
+  let usdtdZonePrim = null;      // 买入区色带（随语言/窗格重建）
+  let usdtdZoneAttached = false; // 色带当前是否挂在系列上
+  let usdtdPlBuy = null;         // 9% / 9.5% 阈值线（创建一次，随窗格显隐）
+  let usdtdPlStrong = null;
+  let usdtdMarkersPlugin = null; // 触及标记插件（v5 createSeriesMarkers）
 
   const LWC = window.LightweightCharts;
-  const { chart, series, lineSeries, waveLine, phaseSolid, phaseDashed } = createChartAndSeries($('chart'));
+  const { chart, series, lineSeries, waveLine, phaseSolid, phaseDashed, usdtdLine } = createChartAndSeries($('chart'));
   let attachedHost = series; // 标注当前挂载的价格系列（随展示模式切换迁移）
   const styleHost = () => (chartStyle === 'line' ? lineSeries : chartStyle === 'wave' ? waveLine : series);
   // 初始可见性与默认展示模式对齐（chart.js 里 K 线是建图默认）
@@ -250,22 +261,29 @@ async function init() {
   chart.timeScale().subscribeVisibleLogicalRangeChange(renderBlockAxis);
   window.addEventListener('resize', renderBlockAxis);
 
-  // ── BTC 指数副图窗格的显隐 ──
-  // 隐藏 = 把两条指数系列移到主面板并设不可见（空面板被 LWC 自动移除，
-  // 主图占满全高）；显示 = 移回面板 1 并恢复线性坐标、留白与 4:1 高度。
-  // 开关按钮浮在窗格右上角，收起后退到图表右下角。
+  // ── BTC 指数副图窗格与 USDT.D 窗格的显隐 ──
+  // 两个副图窗格独立开关、自由组合。LWC 对空面板自动回收，面板索引
+  // 因此是动态的（隐藏 BWI 后第三面板会前移成 1 号），所以重排时先把
+  // 全部系列退回主面板、再按目标布局逐个入位，而不是维护固定索引。
   const phaseBtn = $('phase-toggle');
   const phaseLegend = $('phase-legend');
+  const usdtdBtn = $('usdtd-toggle');
+  const usdtdLegend = $('usdtd-legend');
   function positionPhaseToggle() {
     const hostH = $('chart').clientHeight;
     phaseBtn.style.right = '8px'; // 价格轴在左侧，右缘无轴
     let top = hostH - 28; // 收起态：贴图表右下角
     if (phaseOn) {
       try {
-        const p0 = chart.paneSize(0).height;
-        const p1 = chart.paneSize(1).height;
-        top = p0 + Math.max(0, hostH - p0 - p1) + 5; // 面板顶 + 分隔条
-      } catch { /* 布局未就绪 */ }
+        // BWI 窗格顶 = 主图高度（三窗格下也成立，不再依赖 hostH 差值）
+        top = chart.panes()[0].getHeight() + 5; // 面板顶 + 分隔条
+      } catch {
+        try {
+          const p0 = chart.paneSize(0).height;
+          const p1 = chart.paneSize(1).height;
+          top = p0 + Math.max(0, hostH - p0 - p1) + 5;
+        } catch { /* 布局未就绪 */ }
+      }
     }
     phaseBtn.style.top = `${top}px`;
     // 读数行贴面板左缘（左侧价格轴之右），与面板顶保持 10px（top 已含 +5）
@@ -274,7 +292,28 @@ async function init() {
     phaseLegend.style.left = `${inset}px`;
     phaseLegend.hidden = !phaseOn;
     if (phaseOn) phaseLegend.style.top = `${top + 5}px`;
+    positionUsdtdToggle();
     updateNowGuide(); // 面板高度变化（拖分隔条/显隐副图）时同步重定位标记点
+  }
+  // USDT.D 开关/标题行的定位：窗格顶部 = 其上方各面板高度之和
+  function positionUsdtdToggle() {
+    const hostH = $('chart').clientHeight;
+    usdtdBtn.style.right = '8px';
+    let top = hostH - 28; // 收起态：贴图表右下角
+    if (usdtdOn) {
+      try {
+        const panes = chart.panes();
+        const idx = phaseOn ? 2 : 1; // 面板索引随 BWI 显隐动态变化
+        let y = 0;
+        for (let i = 0; i < idx && i < panes.length; i++) y += panes[i].getHeight();
+        top = y + 5;
+      } catch { /* 布局未就绪 */ }
+    }
+    usdtdBtn.style.top = `${top}px`;
+    const inset = paneLeft() + 14;
+    usdtdLegend.style.left = `${inset}px`;
+    usdtdLegend.hidden = !usdtdOn;
+    if (usdtdOn) usdtdLegend.style.top = `${top + 5}px`;
   }
   // 面板高度变化（拖分隔条/窗口缩放/显隐切换）都会引起画布尺寸变化
   const paneObserver = new ResizeObserver(() => positionPhaseToggle());
@@ -285,42 +324,74 @@ async function init() {
   observePaneCanvases();
   positionPhaseToggle();
 
-  function setPhaseVisible(on) {
-    phaseOn = on;
-    if (on) {
-      phaseSolid.moveToPane(1);
-      phaseDashed.moveToPane(1);
+  function relayoutPanes() {
+    // 先全部退回主面板并隐藏（避免同面板叠加），再按目标布局入位
+    phaseSolid.applyOptions({ visible: false });
+    phaseDashed.applyOptions({ visible: false });
+    usdtdLine.applyOptions({ visible: false });
+    phaseSolid.moveToPane(0);
+    phaseDashed.moveToPane(0);
+    usdtdLine.moveToPane(0);
+    let pane = 1;
+    if (phaseOn) {
+      phaseSolid.moveToPane(pane);
+      phaseDashed.moveToPane(pane);
       phaseSolid.applyOptions({ visible: true });
       phaseDashed.applyOptions({ visible: true });
-      // 新面板的价格轴是全新实例：重设线性坐标与留白
       phaseSolid.priceScale().applyOptions({
         mode: LWC.PriceScaleMode.Normal,
         scaleMargins: { top: 0.06, bottom: 0.05 },
       });
-      try {
-        const panes = chart.panes();
-        panes[0].setStretchFactor(4);
-        panes[1].setStretchFactor(1);
-      } catch (e) { console.warn('副图高度设置失败（不影响功能）：', e); }
-      attachedPhase = currentPhasePrims();
-      for (const p of attachedPhase) phaseSolid.attachPrimitive(p);
-    } else {
-      for (const p of attachedPhase) phaseSolid.detachPrimitive(p);
-      attachedPhase = [];
-      phaseSolid.applyOptions({ visible: false });
-      phaseDashed.applyOptions({ visible: false });
-      phaseSolid.moveToPane(0);
-      phaseDashed.moveToPane(0);
+      pane++;
     }
+    if (usdtdOn) {
+      usdtdLine.moveToPane(pane);
+      usdtdLine.applyOptions({ visible: true });
+      usdtdLine.priceScale().applyOptions({
+        mode: LWC.PriceScaleMode.Normal,
+        scaleMargins: { top: 0.08, bottom: 0.06 },
+      });
+      // 买入区随窗格恢复重新挂载（隐藏窗格时已摘下，不能画进主图）
+      if (usdtdZonePrim && !usdtdZoneAttached) {
+        usdtdLine.attachPrimitive(usdtdZonePrim);
+        usdtdZoneAttached = true;
+      }
+      pane++;
+    }
+    try {
+      const panes = chart.panes();
+      panes[0].setStretchFactor(4);
+      for (let i = 1; i < panes.length; i++) panes[i].setStretchFactor(1);
+    } catch (e) { console.warn('面板高度设置失败（不影响功能）：', e); }
+  }
+
+  function setPhaseVisible(on) {
+    phaseOn = on;
+    relayoutPanes();
     phaseBtn.classList.toggle('active', on);
-    phaseLegend.hidden = !on; // 同步隐藏，不等下面的重定位回调
+    phaseLegend.hidden = !on;
     requestAnimationFrame(() => {
       observePaneCanvases(); // 面板画布重建后重新观察
       positionPhaseToggle();
     });
   }
 
+  function setUsdtdVisible(on) {
+    usdtdOn = on;
+    localStorage.setItem(USDTD_KEY, on ? '1' : '0');
+    relayoutPanes();
+    usdtdBtn.classList.toggle('active', on);
+    usdtdLegend.hidden = !on;
+    requestAnimationFrame(() => {
+      observePaneCanvases();
+      positionPhaseToggle();
+    });
+  }
+
   phaseBtn.addEventListener('click', () => setPhaseVisible(!phaseOn));
+  usdtdBtn.addEventListener('click', () => setUsdtdVisible(!usdtdOn));
+  usdtdBtn.classList.toggle('active', usdtdOn); // 持久化状态回放（默认显示）
+  relayoutPanes(); // 初始按持久化状态摆位：确保各系列可见性与所在面板正确
 
   function makeWatermark() {
     try {
@@ -383,6 +454,35 @@ async function init() {
       `${name}<b class="wave-text" style="color: ${waveTextColor(v)}">${v.toFixed(3)}</b>`;
   }
 
+  // USDT.D 标题行：名称 + 当前值；进入买入区时追加醒目提示
+  function updateUsdtdTitle(v = usdtdNow) {
+    const name = `<b>USDT.D</b>`;
+    if (v === null) {
+      usdtdLegend.innerHTML = name;
+      return;
+    }
+    const inZone = v >= USDT_D_BUY_LEVEL;
+    usdtdLegend.innerHTML =
+      `${name}<b style="color: ${COLORS.usdtd}; margin-left: 12px;">${v.toFixed(2)}%</b>`
+      + (inZone ? `<b class="usdtd-alert" style="color: ${COLORS.usdtdBuyText}">${t('usdtdAlert')}</b>` : '');
+  }
+
+  // 高度 → USDT.D 读数：二分取最近的数据点，超出 2.5 天视为无覆盖
+  function usdtdAtHeight(h) {
+    if (!usdtdSeries.length) return null;
+    let lo = 0;
+    let hi = usdtdSeries.length - 1;
+    while (hi - lo > 1) {
+      const m = (lo + hi) >> 1;
+      if (usdtdSeries[m].time <= h) lo = m;
+      else hi = m;
+    }
+    const a = usdtdSeries[lo];
+    const b = usdtdSeries[hi];
+    const p = Math.abs(a.time - h) <= Math.abs(b.time - h) ? a : b;
+    return Math.abs(p.time - h) <= 360 ? p.value : null;
+  }
+
   // ── 渲染管线 ──
   // newRawDaily 为 null 时复用现有日线（分桶/主题切换）；
   // 枢轴基于日线计算，图表数据按当前粒度分桶（time = 桶起始高度）
@@ -425,6 +525,58 @@ async function init() {
     if (solidData.length && dashedData.length) dashedData.unshift(solidData.at(-1));
     phaseSolid.setData(solidData);
     phaseDashed.setData(dashedData);
+    // USDT.D：日历时间 → 高度 → 对齐到当前分桶网格（与折线/着色系列
+    // 同一时间键，不向时间轴引入新点位——否则 LWC 的逻辑索引会漂移，
+    // 视口意外滚动）；时间键 = bars 的桶起始高度，同桶取最后写入
+    usdtdSeries = [];
+    if (usdtRaw.length && bucket) {
+      const byBar = new Map();
+      for (const [ts, v] of usdtRaw) {
+        const b = Math.floor(heightAt(ts) / bucket) * bucket;
+        byBar.set(b, v);
+      }
+      usdtdSeries = [...byBar.entries()]
+        .map(([time, value]) => ({ time, value }))
+        .sort((a, b) => a.time - b.time);
+    }
+    // 触及标记与买入区（语言切换时文字随 render(null) 重挂重建）
+    if (usdtdSeries.length) {
+      usdtdLine.setData(usdtdSeries);
+        // v5 起标记改由 createSeriesMarkers 插件管理（setMarkers 已移除）。
+        // 连续触及只给第一根带文字，避免相邻「买入」标签互相挤压
+        const touches = usdtdSeries
+          .filter((p) => p.value >= USDT_D_BUY_LEVEL)
+          .map((p, i, arr) => {
+            const firstOfCluster = i === 0 || p.time - arr[i - 1].time >= 30 * 144;
+            return {
+              time: p.time, position: 'belowBar', shape: 'arrowUp',
+              color: COLORS.usdtdBuyText, text: firstOfCluster ? t('usdtdBuy') : '',
+            };
+          });
+      if (!usdtdMarkersPlugin) usdtdMarkersPlugin = LWC.createSeriesMarkers(usdtdLine, touches);
+      else usdtdMarkersPlugin.setMarkers(touches);
+      if (usdtdZonePrim) usdtdLine.detachPrimitive(usdtdZonePrim);
+      usdtdZonePrim = new UsdtBuyZone({
+        buyLevel: USDT_D_BUY_LEVEL,
+        strongLevel: USDT_D_STRONG_LEVEL,
+        label: t('usdtdZoneLabel'),
+        textColor: COLORS.usdtdBuyText,
+        zoneColor: COLORS.usdtdZone,
+      });
+      if (usdtdOn) { usdtdLine.attachPrimitive(usdtdZonePrim); usdtdZoneAttached = true; }
+      if (!usdtdPlBuy) {
+        usdtdPlBuy = usdtdLine.createPriceLine({
+          price: USDT_D_BUY_LEVEL, color: COLORS.usdtdLevel, lineWidth: 1,
+          lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: '9%',
+        });
+        usdtdPlStrong = usdtdLine.createPriceLine({
+          price: USDT_D_STRONG_LEVEL, color: COLORS.usdtdLevel, lineWidth: 1,
+          lineStyle: LWC.LineStyle.Dotted, axisLabelVisible: true, title: '9.5%',
+        });
+      }
+      usdtdNow = usdtdSeries.at(-1).value;
+    }
+    updateUsdtdTitle();
     waveNow = waveIndexAt(hNow);
     updateWaveTitle();
     // 标注挂载到当前可见的价格系列
@@ -451,7 +603,7 @@ async function init() {
       positionPhaseToggle();
     }
     updateStats();
-    window.btc = { chart, series, phaseSolid, phaseDashed, pivots, candles: daily, bars, meta }; // 调试用
+    window.btc = { chart, series, phaseSolid, phaseDashed, pivots, candles: daily, bars, meta, usdtdSeries, usdtdLine }; // 调试用
   }
 
   // ── 顶栏统计 ──
@@ -589,6 +741,14 @@ async function init() {
     }
     const v = waveIndexAt(h);
     rows += row(waveTextColor(v), t('waveLabel'), v.toFixed(3));
+    // USDT.D：与十字线同高的日频读数；进入买入区时追加提示行
+    if (usdtdOn && usdtdSeries.length) {
+      const uv = usdtdAtHeight(h);
+      if (uv !== null) {
+        rows += row(COLORS.usdtd, 'USDT.D', `${uv.toFixed(2)}%`);
+        if (uv >= USDT_D_BUY_LEVEL) rows += row(COLORS.usdtdBuyText, `→ ${t('usdtdAlert')}`, '');
+      }
+    }
     // 周期阶段：BTC 上行段 = 牛市，下行段 = 熊市
     const s = (((h + WAVE_BULL_HALF) % HALVING_INTERVAL) + HALVING_INTERVAL) % HALVING_INTERVAL;
     const isBull = s < 2 * WAVE_BULL_HALF;
@@ -618,6 +778,9 @@ async function init() {
       ? (param.seriesData.get(phaseSolid) ?? param.seriesData.get(phaseDashed))
       : null;
     updateWaveTitle(w ? w.value : waveNow);
+    updateUsdtdTitle(param?.time !== undefined
+      ? (usdtdAtHeight(param.time) ?? usdtdNow)
+      : usdtdNow);
     // 底轴浮标：十字线位置的高度与≈日期
     updateAxisCursor(param?.time !== undefined ? param.time : null);
   });
@@ -690,6 +853,7 @@ async function init() {
     $('halving-toggle').title = t('titleAnnotHalving');
     $('bands-toggle').title = t('titleAnnotBands');
     $('phase-toggle').title = t('titlePhase');
+    $('usdtd-toggle').title = t('titleUsdtd');
     $('wave-scale').title = t('titleWaveScale');
     $('notice-close').setAttribute('aria-label', t('closeLabel'));
     $('about-toggle').title = t('titleAbout');
@@ -777,15 +941,21 @@ async function init() {
     localStorage.setItem(THEME_KEY, themeName);
     setTheme(themeName);
     document.documentElement.dataset.theme = themeName;
-    applyChartTheme(chart, series, lineSeries, phaseSolid, phaseDashed);
+    applyChartTheme(chart, series, lineSeries, phaseSolid, phaseDashed, usdtdLine);
     makeWatermark();
     render(null); // 重建标注/标签轴以套用新配色（保留当前缩放）
   });
 
   // ── 数据：快照与高度锚点立即渲染，实时尾部与链上高度后台升级 ──
+  // USDT.D 快照并行拉取（独立资源，失败只留空窗格，不阻塞主图）
+  const usdtSnap = fetch('data/usdt-dominance.json')
+    .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    .then((json) => json.series || [])
+    .catch((e) => { console.warn('USDT.D 数据加载失败（窗格留空）：', e); return []; });
   let snapshot;
   try {
-    [snapshot] = await Promise.all([loadSnapshot(), loadHeightAnchors()]);
+    // 跳位解构：第二项是锚点加载（无返回值），第三项才是 USDT.D 原始序列
+    [snapshot, , usdtRaw] = await Promise.all([loadSnapshot(), loadHeightAnchors(), usdtSnap]);
   } catch (e) {
     console.error(e);
     $('loading-text').textContent = t('loadFailData', e.message);
