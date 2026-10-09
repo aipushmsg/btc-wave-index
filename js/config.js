@@ -41,12 +41,12 @@ export const TRADE_WINDOW_DAYS = 500;
 //   高位（避险资金占比极高 = 大饼被恐慌抛售至低估区）→ 买入：
 //     抵达 8.9% 进入买入区，10% 为极端低估（历史峰值 9.486% 在此区间内）；
 //   低位（稳定币占比枯竭 = 市场资金全押风险资产 = 大饼高估区）→ 卖出：
-//     跌破 4.2% 进入卖出区，2.1% 为极端高估（下界与上界视觉等宽）。
+//     跌破 4.2% 进入卖出区，3.1% 为极端高估（下界与上界视觉等宽对齐）。
 // 历史验证：2022-12 峰值（TV 同源数据 9.486%）正是上轮熊市大底。
 export const USDT_D_BUY_LEVEL = 8.9;
 export const USDT_D_BUY_STRONG = 10;
 export const USDT_D_SELL_LEVEL = 4.2;
-export const USDT_D_SELL_STRONG = 2.1;
+export const USDT_D_SELL_STRONG = 3.1;
 
 // BTC 周期指数（纯区块制）：周期 = 210,000 块（减半到减半），牛三熊一 →
 // 牛市 = 157,500 块且减半在正中间，即 减半 ± 78,750 块；熊市 = 其余 52,500 块。
