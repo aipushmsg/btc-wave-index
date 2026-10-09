@@ -158,6 +158,11 @@ export function createChartAndSeries(container) {
     lastValueVisible: true,
     pointMarkersVisible: false,
     visible: false, // 默认隐藏，main.js 加载数据后按持久化状态显示
+    // 固定轴域 [0, 10]：占比指标的天然值域——上下买卖区与四条阈值线
+    // 在任何行情下都完整可见（不随数据范围伸缩）
+    autoscaleInfoProvider: () => ({
+      priceRange: { minValue: 0, maxValue: 10 },
+    }),
   }, 2);
   usdtdLine.priceScale().applyOptions({
     mode: LWC.PriceScaleMode.Normal,

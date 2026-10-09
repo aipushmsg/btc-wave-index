@@ -3,7 +3,8 @@
 // OHLC 读数、周期状态栏、顶部标签轴）
 import {
   DAY, BLOCK_BUCKETS, HALVING_INTERVAL, WAVE_BULL_HALF, COLORS, FONT, FONT_MONO, setTheme,
-  WAVE_COLOR_STOPS, waveColor, USDT_D_BUY_LEVEL, USDT_D_STRONG_LEVEL,
+  WAVE_COLOR_STOPS, waveColor,
+  USDT_D_BUY_LEVEL, USDT_D_BUY_STRONG, USDT_D_SELL_LEVEL, USDT_D_SELL_STRONG,
 } from './config.js';
 import { createChartAndSeries, applyChartTheme, setLogScale } from './chart.js';
 import {
@@ -17,7 +18,7 @@ import {
 import { computePivots, buildAnnotations } from './pivots.js';
 import { t, setLang, I18N } from './i18n.js';
 import { setSeriesData, timeToLogical, logicalToX } from './primitives/base.js';
-import { UsdtBuyZone } from './primitives/usdt-zone.js';
+import { UsdtZones } from './primitives/usdt-zone.js';
 
 const $ = (id) => document.getElementById(id);
 const fmtDate = (t) => new Date(t * 1000).toISOString().slice(0, 10);
@@ -122,10 +123,9 @@ async function init() {
   let usdtRaw = [];        // USDT.D 原始序列（[[unix秒, %]]，快照加载后固定）
   let usdtdSeries = [];    // 对齐到当前分桶网格后的序列（render 内重建）
   let usdtdNow = null;     // 最新 USDT.D 读数
-  let usdtdZonePrim = null;      // 买入区色带（随语言/窗格重建）
+  let usdtdZonePrim = null;      // 买卖区色带（随语言/窗格重建）
   let usdtdZoneAttached = false; // 色带当前是否挂在系列上
-  let usdtdPlBuy = null;         // 9% / 9.5% 阈值线（创建一次，随窗格显隐）
-  let usdtdPlStrong = null;
+  let usdtdPlList = null;        // 四条阈值线（创建一次，随窗格显隐）
   let usdtdMarkersPlugin = null; // 触及标记插件（v5 createSeriesMarkers）
 
   const LWC = window.LightweightCharts;
@@ -454,17 +454,19 @@ async function init() {
       `${name}<b class="wave-text" style="color: ${waveTextColor(v)}">${v.toFixed(3)}</b>`;
   }
 
-  // USDT.D 标题行：名称 + 当前值；进入买入区时追加醒目提示
+  // USDT.D 标题行：名称 + 当前值；进入买入区（高位）或卖出区（低位）
+  // 时追加醒目提示——上下镜像
   function updateUsdtdTitle(v = usdtdNow) {
     const name = `<b>USDT.D</b>`;
     if (v === null) {
       usdtdLegend.innerHTML = name;
       return;
     }
-    const inZone = v >= USDT_D_BUY_LEVEL;
+    let alert = '';
+    if (v >= USDT_D_BUY_LEVEL) alert = `<b class="usdtd-alert" style="color: ${COLORS.usdtdBuyText}">${t('usdtdAlertBuy')}</b>`;
+    else if (v <= USDT_D_SELL_LEVEL) alert = `<b class="usdtd-alert" style="color: ${COLORS.usdtdSellText}">${t('usdtdAlertSell')}</b>`;
     usdtdLegend.innerHTML =
-      `${name}<b style="color: ${COLORS.usdtd}; margin-left: 12px;">${v.toFixed(2)}%</b>`
-      + (inZone ? `<b class="usdtd-alert" style="color: ${COLORS.usdtdBuyText}">${t('usdtdAlert')}</b>` : '');
+      `${name}<b style="color: ${COLORS.usdtd}; margin-left: 12px;">${v.toFixed(2)}%</b>${alert}`;
   }
 
   // 高度 → USDT.D 读数：二分取最近的数据点，超出 2.5 天视为无覆盖
@@ -539,40 +541,45 @@ async function init() {
         .map(([time, value]) => ({ time, value }))
         .sort((a, b) => a.time - b.time);
     }
-    // 触及标记与买入区（语言切换时文字随 render(null) 重挂重建）
+    // 触及标记与买卖区（语言切换时文字随 render(null) 重挂重建）。
+    // 买入触及（≥ 8.9%，点下方绿箭头）与卖出触及（≤ 4.2%，点上方红
+    // 箭头）各自聚簇：连续触及只给第一根带文字，避免相邻标签互相挤压
     if (usdtdSeries.length) {
       usdtdLine.setData(usdtdSeries);
-        // v5 起标记改由 createSeriesMarkers 插件管理（setMarkers 已移除）。
-        // 连续触及只给第一根带文字，避免相邻「买入」标签互相挤压
-        const touches = usdtdSeries
-          .filter((p) => p.value >= USDT_D_BUY_LEVEL)
-          .map((p, i, arr) => {
-            const firstOfCluster = i === 0 || p.time - arr[i - 1].time >= 30 * 144;
-            return {
-              time: p.time, position: 'belowBar', shape: 'arrowUp',
-              color: COLORS.usdtdBuyText, text: firstOfCluster ? t('usdtdBuy') : '',
-            };
-          });
+      let prevBuy = null;
+      let prevSell = null;
+      const touches = [];
+      for (const p of usdtdSeries) {
+        if (p.value >= USDT_D_BUY_LEVEL) {
+          const first = prevBuy === null || p.time - prevBuy >= 30 * 144;
+          if (first) prevBuy = p.time;
+          touches.push({ time: p.time, position: 'belowBar', shape: 'arrowUp', color: COLORS.usdtdBuyText, text: first ? t('usdtdBuy') : '' });
+        } else if (p.value <= USDT_D_SELL_LEVEL) {
+          const first = prevSell === null || p.time - prevSell >= 30 * 144;
+          if (first) prevSell = p.time;
+          touches.push({ time: p.time, position: 'aboveBar', shape: 'arrowDown', color: COLORS.usdtdSellText, text: first ? t('usdtdSell') : '' });
+        }
+      }
       if (!usdtdMarkersPlugin) usdtdMarkersPlugin = LWC.createSeriesMarkers(usdtdLine, touches);
       else usdtdMarkersPlugin.setMarkers(touches);
       if (usdtdZonePrim) usdtdLine.detachPrimitive(usdtdZonePrim);
-      usdtdZonePrim = new UsdtBuyZone({
-        buyLevel: USDT_D_BUY_LEVEL,
-        strongLevel: USDT_D_STRONG_LEVEL,
-        label: t('usdtdZoneLabel'),
-        textColor: COLORS.usdtdBuyText,
-        zoneColor: COLORS.usdtdZone,
+      usdtdZonePrim = new UsdtZones({
+        zones: [
+          { lo: USDT_D_BUY_LEVEL, hi: USDT_D_BUY_STRONG, label: t('usdtdZoneBuyLabel'), textColor: COLORS.usdtdBuyText, zoneColor: COLORS.usdtdZone },
+          { lo: USDT_D_SELL_STRONG, hi: USDT_D_SELL_LEVEL, label: t('usdtdZoneSellLabel'), textColor: COLORS.usdtdSellText, zoneColor: COLORS.usdtdZoneSell },
+        ],
       });
       if (usdtdOn) { usdtdLine.attachPrimitive(usdtdZonePrim); usdtdZoneAttached = true; }
-      if (!usdtdPlBuy) {
-        usdtdPlBuy = usdtdLine.createPriceLine({
-          price: USDT_D_BUY_LEVEL, color: COLORS.usdtdLevel, lineWidth: 1,
-          lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: '9%',
+      if (!usdtdPlList) {
+        const lv = (price, color, style, title) => usdtdLine.createPriceLine({
+          price, color, lineWidth: 1, lineStyle: style, axisLabelVisible: true, title,
         });
-        usdtdPlStrong = usdtdLine.createPriceLine({
-          price: USDT_D_STRONG_LEVEL, color: COLORS.usdtdLevel, lineWidth: 1,
-          lineStyle: LWC.LineStyle.Dotted, axisLabelVisible: true, title: '9.5%',
-        });
+        usdtdPlList = [
+          lv(USDT_D_BUY_STRONG, COLORS.usdtdBuyText, LWC.LineStyle.Dashed, '10%'),
+          lv(USDT_D_BUY_LEVEL, COLORS.usdtdBuyText, LWC.LineStyle.Dashed, '8.9%'),
+          lv(USDT_D_SELL_LEVEL, COLORS.usdtdSellText, LWC.LineStyle.Dashed, '4.2%'),
+          lv(USDT_D_SELL_STRONG, COLORS.usdtdSellText, LWC.LineStyle.Dotted, '0%'),
+        ];
       }
       usdtdNow = usdtdSeries.at(-1).value;
     }
@@ -741,12 +748,14 @@ async function init() {
     }
     const v = waveIndexAt(h);
     rows += row(waveTextColor(v), t('waveLabel'), v.toFixed(3));
-    // USDT.D：与十字线同高的日频读数；进入买入区时追加提示行
+    // USDT.D：与十字线同高的日频读数；进入买入区（高位）或卖出区
+    //（低位）时追加提示行——上下镜像
     if (usdtdOn && usdtdSeries.length) {
       const uv = usdtdAtHeight(h);
       if (uv !== null) {
         rows += row(COLORS.usdtd, 'USDT.D', `${uv.toFixed(2)}%`);
-        if (uv >= USDT_D_BUY_LEVEL) rows += row(COLORS.usdtdBuyText, `→ ${t('usdtdAlert')}`, '');
+        if (uv >= USDT_D_BUY_LEVEL) rows += row(COLORS.usdtdBuyText, `→ ${t('usdtdAlertBuy')}`, '');
+        else if (uv <= USDT_D_SELL_LEVEL) rows += row(COLORS.usdtdSellText, `→ ${t('usdtdAlertSell')}`, '');
       }
     }
     // 周期阶段：BTC 上行段 = 牛市，下行段 = 熊市
