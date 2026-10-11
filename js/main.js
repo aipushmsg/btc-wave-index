@@ -368,6 +368,12 @@ async function init() {
   function setPhaseVisible(on) {
     phaseOn = on;
     relayoutPanes();
+    // 隐藏期间 render/applyAnnotations 会按 phaseOn=false 清空副图标注
+    //（attachedPhase=[]），重新显示时必须补挂，否则牛熊填充与副图
+    // 减半线会丢失（指数线不受影响，容易漏看）
+    for (const p of attachedPhase) phaseSolid.detachPrimitive(p);
+    attachedPhase = on ? currentPhasePrims() : [];
+    for (const p of attachedPhase) phaseSolid.attachPrimitive(p);
     phaseBtn.classList.toggle('active', on);
     phaseLegend.hidden = !on;
     requestAnimationFrame(() => {

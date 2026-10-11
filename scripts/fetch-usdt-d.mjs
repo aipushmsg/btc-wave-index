@@ -49,7 +49,7 @@ while (url) {
   const page = await j(url);
   for (const r of page.data) btc.push([Math.floor(new Date(r.time).getTime() / 1000), Number(r.CapMrktCurUSD)]);
   url = page.next_page_token
-    ? `https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=CapMrktCurUSD&page_size=5000&start_time=2019-01-01&page=${page.next_page_token}`
+    ? `https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=CapMrktCurUSD&page_size=5000&start_time=2019-01-01&next_page_token=${page.next_page_token}`
     : null;
 }
 btc.sort((a, b) => a[0] - b[0]);
