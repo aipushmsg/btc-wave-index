@@ -11,6 +11,7 @@ import {
   loadSnapshot, fetchBitstampLive, fetchCoinbaseFallback,
   mergeCandles, fillGaps,
 } from './data.js';
+import { fetchUsdtDLive } from './usdt-d.js';
 import {
   loadHeightAnchors, fetchTipAnchor, heightAt, timeAtHeight,
   aggregateByBlocks, extendBlocks, prependBlocks, waveIndexAt, waveHorizonHeight,
@@ -120,7 +121,9 @@ async function init() {
   let watermark = null;
   let waveNow = null;      // 当前（今日）BTC 指数值，十字线移开时回落显示
   let usdtdOn = localStorage.getItem(USDTD_KEY) !== '0'; // USDT.D 窗格显示中（默认开）
-  let usdtRaw = [];        // USDT.D 原始序列（[[unix秒, %]]，快照加载后固定）
+  let usdtRaw = [];        // USDT.D 当前序列（快照 + 实时尾部合并，render 的数据源）
+  let usdtSnapshot = [];   // USDT.D 原始快照（每次实时刷新都从它重新合并，避免逐次漂移）
+  let usdtdMeta = { live: false, asOf: null }; // 数据来源与截至日（图例状态标识）
   let usdtdSeries = [];    // 对齐到当前分桶网格后的序列（render 内重建）
   let usdtdNow = null;     // 最新 USDT.D 读数
   let usdtdZonePrim = null;      // 买卖区色带（随语言/窗格重建）
@@ -461,7 +464,7 @@ async function init() {
   }
 
   // USDT.D 标题行：名称 + 当前值；进入买入区（高位）或卖出区（低位）
-  // 时追加醒目提示——上下镜像
+  // 时追加醒目提示——上下镜像；末尾附数据来源/截至日状态标识
   function updateUsdtdTitle(v = usdtdNow) {
     const name = `<b>USDT.D</b>`;
     if (v === null) {
@@ -472,7 +475,16 @@ async function init() {
     if (v >= USDT_D_BUY_LEVEL) alert = `<b class="usdtd-alert" style="color: ${COLORS.usdtdBuyText}">${t('usdtdAlertBuy')}</b>`;
     else if (v <= USDT_D_SELL_LEVEL) alert = `<b class="usdtd-alert" style="color: ${COLORS.usdtdSellText}">${t('usdtdAlertSell')}</b>`;
     usdtdLegend.innerHTML =
-      `${name}<b style="color: ${COLORS.usdtd}; margin-left: 12px;">${v.toFixed(2)}%</b>${alert}`;
+      `${name}<b style="color: ${COLORS.usdtd}; margin-left: 12px;">${v.toFixed(2)}%</b>${alert}${usdtdStatusHtml()}`;
+  }
+
+  // 实时 = 运行时已自动延伸到当天；快照 = 实时源不可达，回退到内置快照（截至日偏旧）
+  function usdtdStatusHtml() {
+    if (!usdtdMeta.asOf) return '';
+    const d = fmtYMD(usdtdMeta.asOf);
+    const cls = usdtdMeta.live ? 'usdtd-status live' : 'usdtd-status stale';
+    const label = usdtdMeta.live ? t('usdtdLive', d) : t('usdtdSnapshot', d);
+    return `<span class="${cls}">${label}</span>`;
   }
 
   // 高度 → USDT.D 读数：二分取最近的数据点，超出 2.5 天视为无覆盖
@@ -616,7 +628,7 @@ async function init() {
       positionPhaseToggle();
     }
     updateStats();
-    window.btc = { chart, series, phaseSolid, phaseDashed, pivots, candles: daily, bars, meta, usdtdSeries, usdtdLine }; // 调试用
+    window.btc = { chart, series, phaseSolid, phaseDashed, pivots, candles: daily, bars, meta, usdtdSeries, usdtdLine, refreshUsdtD }; // 调试用
   }
 
   // ── 顶栏统计 ──
@@ -962,15 +974,18 @@ async function init() {
   });
 
   // ── 数据：快照与高度锚点立即渲染，实时尾部与链上高度后台升级 ──
-  // USDT.D 快照并行拉取（独立资源，失败只留空窗格，不阻塞主图）
+  // USDT.D 快照并行拉取（独立资源，失败只留空窗格，不阻塞主图）；
+  // 快照仅作底，运行时由 fetchUsdtDLive 自动延伸尾部到当天（见 refreshUsdtD）
   const usdtSnap = fetch('data/usdt-dominance.json')
     .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
     .then((json) => json.series || [])
-    .catch((e) => { console.warn('USDT.D 数据加载失败（窗格留空）：', e); return []; });
+    .catch((e) => { console.warn('USDT.D 快照加载失败（窗格留空）：', e); return []; });
   let snapshot;
   try {
-    // 跳位解构：第二项是锚点加载（无返回值），第三项才是 USDT.D 原始序列
-    [snapshot, , usdtRaw] = await Promise.all([loadSnapshot(), loadHeightAnchors(), usdtSnap]);
+    // 跳位解构：第二项是锚点加载（无返回值），第三项才是 USDT.D 快照
+    [snapshot, , usdtSnapshot] = await Promise.all([loadSnapshot(), loadHeightAnchors(), usdtSnap]);
+    usdtRaw = usdtSnapshot;
+    usdtdMeta = { live: false, asOf: usdtSnapshot.at(-1)?.[0] ?? null };
   } catch (e) {
     console.error(e);
     $('loading-text').textContent = t('loadFailData', e.message);
@@ -1109,11 +1124,33 @@ async function init() {
       candleRefreshBusy = false;
     }
   }
+  // USDT.D 实时刷新：快照做底 + CoinMetrics/CoinPaprika 自动延伸尾部到当天，
+  // 当日值随实时价格折算。5 分钟一轮（日频数据 + 当日口径）；失败保留现有数据并标注。
+  let usdtdRefreshBusy = false;
+  async function refreshUsdtD() {
+    if (usdtdRefreshBusy) return;
+    usdtdRefreshBusy = true;
+    try {
+      const res = await fetchUsdtDLive(usdtSnapshot, livePrice);
+      usdtRaw = res.series;
+      usdtdMeta = { live: true, asOf: res.asOf };
+      render(null); // 视图不动，副图尾部/读数/状态标识原地升级
+    } catch (e) {
+      console.warn('USDT.D 实时刷新失败，保留现有数据：', e);
+      // 保留已上屏的数据（首次为快照，之后为上次实时尾部），状态日期取当前序列末日
+      usdtdMeta = { live: false, asOf: usdtRaw.at(-1)?.[0] ?? null };
+      updateUsdtdTitle();
+    } finally {
+      usdtdRefreshBusy = false;
+    }
+  }
   setInterval(pollPrice, 30000);
   setInterval(pollHeight, 60000);
   setInterval(pollCandles, 300000);
+  setInterval(refreshUsdtD, 300000);
   pollPrice();
   connectPriceStream();
+  refreshUsdtD();
   console.table(pivots.map((p) => ({ 类型: p.type === 'top' ? '牛顶' : '熊底', 日期: fmtDate(p.time), 价格: p.price, 高度: heightAt(p.time) })));
 }
 

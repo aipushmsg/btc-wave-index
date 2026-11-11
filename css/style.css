@@ -689,6 +689,17 @@ html:not([lang="en"]) .glyph-en { display: none; }
   margin-left: 12px;
 }
 
+/* USDT.D 数据来源状态：实时（绿）/ 快照回退（琥珀），小字弱化不抢读数 */
+.usdtd-status {
+  margin-left: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.usdtd-status.live { color: var(--up); }
+.usdtd-status.stale { color: #e8a13c; }
+:root[data-theme="light"] .usdtd-status.stale { color: #b97708; }
+
 /* ── 悬停信息卡：跟随十字线，聚合该位置的全部读数 ── */
 .chart-tooltip {
   border-radius: var(--r-l);
